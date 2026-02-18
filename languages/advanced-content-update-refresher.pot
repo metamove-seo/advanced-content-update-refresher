@@ -1,0 +1,112 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: de_DE\n"
+
+msgid "Advanced Content Update Refresher"
+msgstr "Erweiterte Inhaltsaktualisierung"
+
+msgid "Update Refresher"
+msgstr "Aktualisierungs-Refresher"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Update Interval"
+msgstr "Aktualisierungsintervall"
+
+msgid "Every Minute"
+msgstr "Minütlich"
+
+msgid "Every 2 Minutes"
+msgstr "Alle 2 Minuten"
+
+msgid "Every 5 Minutes"
+msgstr "Alle 5 Minuten"
+
+msgid "Hourly"
+msgstr "Stündlich"
+
+msgid "Daily"
+msgstr "Täglich"
+
+msgid "Weekly"
+msgstr "Wöchentlich"
+
+msgid "Every 2 Weeks"
+msgstr "Alle 2 Wochen"
+
+msgid "Monthly"
+msgstr "Monatlich"
+
+msgid "Custom (Days)"
+msgstr "Benutzerdefiniert (Tage)"
+
+msgid "Enable 10% Random Variance"
+msgstr "Zufallsvarianz von 10 % aktivieren"
+
+msgid "Posts per Update"
+msgstr "Beiträge pro Update"
+
+msgid "Field to Update"
+msgstr "Zu aktualisierendes Feld"
+
+msgid "Modified"
+msgstr "Geändert"
+
+msgid "Published"
+msgstr "Veröffentlicht"
+
+msgid "Save Changes"
+msgstr "Änderungen speichern"
+
+msgid "Bulk Update"
+msgstr "Massenaktualisierung"
+
+msgid "Update All"
+msgstr "Alle aktualisieren"
+
+msgid "Link to Sitemap"
+msgstr "Link zur Sitemap"
+
+msgid "View Sitemap"
+msgstr "Sitemap anzeigen"
+
+msgid "No valid post types found."
+msgstr "Keine gültigen Beitragstypen gefunden."
+
+msgid "Bulk update successfully completed"
+msgstr "Massenaktualisierung erfolgreich beendet"
+
+msgid "updated"
+msgstr "aktualisiert"
+
+msgid "To perform the bulk update, please first save the settings for the post type."
+msgstr "Um die Massenaktualisierung durchführen zu können, speichern Sie bitte zuerst die Einstellungen für den Post-Type."
+
+msgid "No permission!"
+msgstr "Keine Berechtigung!"
+
+msgid "Invalid security check!"
+msgstr "Ungültige Sicherheitsüberprüfung!"
+
+msgid "Post type is missing!"
+msgstr "Post-Typ fehlt!"
+
+msgid "ERROR: No settings for the post type"
+msgstr "FEHLER: Keine Einstellungen für den Post-Typ "
+
+msgid "found!"
+msgstr " gefunden!"
+
+msgid "No Posts found!"
+msgstr "Keine Beiträge gefunden!"
+
+msgid "Custom"
+msgstr "Benutzerdefiniert"
+
+msgid "Every"
+msgstr "Alle "
+
+msgid "days"
+msgstr " Tage"
