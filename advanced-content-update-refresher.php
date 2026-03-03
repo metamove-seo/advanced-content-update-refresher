@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Advanced Content Update Refresher
- * Plugin URI: https://www.metamove.de
+ * Plugin URI: https://www.metamove.de/en/marketing/search-engine-optimization/advanced-content-update-refresher.html
  * Description: Automatically refresh and update WordPress post publish or modified dates on flexible schedules to support structured content maintenance and SEO freshness signals.
  * Version: 1.0.0
  * Author: Metamove GmbH
