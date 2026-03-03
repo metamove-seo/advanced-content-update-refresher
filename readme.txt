@@ -1,14 +1,14 @@
 === Advanced Content Update Refresher ===
 Contributors: metamove
-Tags: content refresh, update post date, last modified, bulk update, seo, wordpress cron, content automation, evergreen content, sitemap
+Tags: content refresh, update post date, last modified, bulk update, seo
 Requires at least: 6.0
-Tested up to: 6.9.1
+Tested up to: 6.9
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Automatically refresh and update WordPress post publish or modified dates on flexible schedules to support structured content maintenance and SEO freshness signals.
+Automatically update WordPress publish or modified dates on flexible schedules to support structured content freshness.
 
 == Description ==
 
@@ -22,10 +22,10 @@ Rather than manually editing old posts, this plugin allows you to define update 
 
 Search engines evaluate several freshness-related signals, including:
 
-â€¢ Last modified date  
-â€¢ Publish date  
-â€¢ XML sitemap "lastmod" entries  
-â€¢ Crawl frequency and update patterns  
+• Last modified date  
+• Publish date  
+• XML sitemap "lastmod" entries  
+• Crawl frequency and update patterns  
 
 Refreshing evergreen content can help maintain crawl activity and keep structured content archives technically up to date.
 
@@ -33,22 +33,22 @@ Important: This plugin does not manipulate rankings. Sustainable SEO performance
 
 == Features ==
 
-â€¢ Automatic scheduled updates (hourly, daily, weekly, biweekly, monthly or custom days)  
-â€¢ Update publish date or modified date  
-â€¢ Optional 10% time variance for natural timestamp distribution  
-â€¢ Bulk update functionality  
-â€¢ Compatible with major SEO plugins (Yoast, Rank Math, AIOSEO)  
-â€¢ Respects the native WordPress cron system  
-â€¢ Lightweight and clean implementation  
-â€¢ Multilingual ready  
+• Automatic scheduled updates (hourly, daily, weekly, biweekly, monthly or custom days)  
+• Update publish date or modified date  
+• Optional 10% time variance for natural timestamp distribution  
+• Bulk update functionality  
+• Compatible with major SEO plugins (Yoast, Rank Math, AIOSEO)  
+• Respects the native WordPress cron system  
+• Lightweight and clean implementation  
+• Multilingual ready  
 
 == Use Cases ==
 
-â€¢ Refresh evergreen blog content  
-â€¢ Maintain structured update cycles  
-â€¢ Rotate older articles naturally  
-â€¢ Support long-term content marketing strategies  
-â€¢ Improve technical content maintenance workflows  
+• Refresh evergreen blog content  
+• Maintain structured update cycles  
+• Rotate older articles naturally  
+• Support long-term content marketing strategies  
+• Improve technical content maintenance workflows  
 
 == How It Works ==
 
@@ -57,8 +57,8 @@ When settings are saved, the plugin can immediately trigger an update and then c
 
 You can choose whether to update:
 
-â€¢ The publish date  
-â€¢ The modified date  
+• The publish date  
+• The modified date  
 
 An optional variance setting slightly randomizes timestamps to avoid identical update patterns.
 

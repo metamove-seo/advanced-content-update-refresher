@@ -37,11 +37,11 @@ function acur_deactivate() {
 }
 register_deactivation_hook(__FILE__, 'acur_deactivate');
 
-function acur_load_textdomain() {
-    load_plugin_textdomain('advanced-content-update-refresher', false, dirname(plugin_basename(__FILE__)) . '/languages/');
-}
-
-add_action('plugins_loaded', 'acur_load_textdomain');
+// function acur_load_textdomain() {
+//     load_plugin_textdomain('advanced-content-update-refresher', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+// }
+// 
+// add_action('plugins_loaded', 'acur_load_textdomain');
 add_filter( 'cron_schedules', 'acur_add_schedules' );
 add_action( 'init', 'acur_schedule_crons', 1000);
 

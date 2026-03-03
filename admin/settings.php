@@ -3,11 +3,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-global $current_post_type;
+global $acur_current_post_type;
 
 function acur_settingsUpdated()
 {
     if(
+        current_user_can('manage_options') && 
         isset($_GET['page']) && $_GET['page']=="acur-settings" 
         && isset($_GET['settings-updated']) && $_GET['settings-updated']=="true" 
     )
@@ -20,8 +21,8 @@ function acur_settingsUpdated()
 // Admin-Menü hinzufügen
 function acur_admin_menu() {
     add_menu_page(
-        __('Advanced Content Update Refresher', 'advanced-content-update-refresher'), // Titel der Seite
-        __('Update Refresher', 'advanced-content-update-refresher'), // Menüname
+        esc_html__('Advanced Content Update Refresher', 'advanced-content-update-refresher'), // Titel der Seite
+        esc_html__('Update Refresher', 'advanced-content-update-refresher'), // Menüname
         'manage_options', // Benutzerrechte
         'acur-settings', // Slug
         'acur_settings_page', // Funktion, die die Seite anzeigt
@@ -36,8 +37,45 @@ function acur_register_settings() {
     $post_types = acur_get_all_post_types();
     
     foreach ($post_types as $post_type) {
-        register_setting("acur_settings_group_{$post_type}", "acur_settings_{$post_type}");
+        register_setting("acur_settings_group_{$post_type}", "acur_settings_{$post_type}", array('type'=>'array', 'sanitize_callback' => 'acur_sanitize_settings_array', 'default' => NULL,));
     }
+}
+
+function acur_sanitize_settings_array($input)
+{
+    $settingsFields=array("mass_update_field"=>"str","frequency"=>"str","custom_days"=>"int","random_variance"=>"int","posts_per_run"=>"int","update_field"=>"str");
+    $updateFields=array("modified","published");
+    
+    if(is_array($input))
+    {
+        $output=array();
+    
+        foreach ($input as $key => $value)
+        {
+            if(array_key_exists($key,$settingsFields))
+            {
+                if($key=="mass_update_field" || $key=="update_field")
+                {
+                        if(!in_array($value,$updateFields))
+                        {
+                            $output[$key]="modified"; // set to default
+                        }
+                }
+            
+                switch($settingsFields[$key])
+                {
+                    case "int": $output[$key] = (int)$value; break;
+                    case "str": $output[$key] = sanitize_text_field($value); break;
+                }
+            }
+        }
+    }
+    else
+    {
+        $output = sanitize_text_field($input);
+    }
+    
+    return $output;
 }
 
 function acur_save_settings() 
@@ -101,16 +139,20 @@ add_action('wp_ajax_acur_get_total_posts', 'acur_get_total_posts');
 
 function acur_get_total_posts() 
 {
-    $total = 0;
-    
-    $post_type = isset($_POST['post_type']) ? sanitize_text_field($_POST['post_type']) : '';
-    if (!$post_type) {
-        wp_send_json_error(__('Post type is missing!', 'advanced-content-update-refresher'));
-    }
-    
-    $total = wp_count_posts($post_type)->publish;
+        if (!check_ajax_referer('acur_get_total_posts', 'security', false)) {
+            wp_send_json_error(esc_html__('Invalid security check!', 'advanced-content-update-refresher'));
+        }
 
-    wp_send_json_success(array('total' => $total));
+        $total = 0;
+        
+        $post_type = isset($_POST['post_type']) ? sanitize_text_field(wp_unslash($_POST['post_type'])) : '';
+        if (!$post_type) {
+            wp_send_json_error(esc_html__('Post type is missing!', 'advanced-content-update-refresher'));
+        }
+        
+        $total = wp_count_posts($post_type)->publish;
+
+        wp_send_json_success(array('total' => $total));
 }
 
 // AJAX-Handler für die Massenaktualisierung
@@ -119,40 +161,39 @@ add_action('wp_ajax_acur_mass_update', 'acur_mass_update');
 function acur_mass_update() 
 {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(__('No permission!', 'advanced-content-update-refresher'));
+        wp_send_json_error(esc_html__('No permission!', 'advanced-content-update-refresher'));
     }
 
     if (!check_ajax_referer('acur_mass_update', 'security', false)) {
-        wp_send_json_error(__('Invalid security check!', 'advanced-content-update-refresher'));
+        wp_send_json_error(esc_html__('Invalid security check!', 'advanced-content-update-refresher'));
     }
 
-    $post_type = isset($_POST['post_type']) ? sanitize_text_field($_POST['post_type']) : '';
+    $post_type = isset($_POST['post_type']) ? sanitize_text_field(wp_unslash($_POST['post_type'])) : '';
     if (!$post_type) {
-        wp_send_json_error(__('Post type is missing!', 'advanced-content-update-refresher'));
+        wp_send_json_error(esc_html__('Post type is missing!', 'advanced-content-update-refresher'));
     }
     
+    if(!isset($_POST['offset'])) {$_POST['offset']=0;}
+    if(!isset($_POST['limit'])) {$_POST['limit']=0;}
+
     acur_do_update($post_type,(int)$_POST['offset'],(int)$_POST['limit'],1);
 }
 
 function acur_set_global_posttype()
 {
-    global $current_post_type;
+    global $acur_current_post_type;
 
-    if (!isset($current_post_type) || empty($current_post_type))
+    if (!isset($acur_current_post_type) || empty($acur_current_post_type))
     {
         $allowed_post_types = acur_get_all_post_types();
         
-        if (isset($_POST['post_type']) && in_array($_POST['post_type'],$allowed_post_types))
+        if(isset($_GET['tab']) && in_array($_GET['tab'],$allowed_post_types))
         {
-            $current_post_type = sanitize_text_field($_POST['post_type']);
-        }
-        elseif(isset($_GET['tab']) && in_array($_GET['tab'],$allowed_post_types))
-        {
-            $current_post_type = sanitize_text_field($_GET['tab']);
+            $acur_current_post_type = sanitize_text_field(wp_unslash($_GET['tab']));
         }
         else
         {
-            $current_post_type = 'post';
+            $acur_current_post_type = 'post';
         }
     }
 }
@@ -161,64 +202,65 @@ function acur_set_global_posttype()
 function acur_settings_page() {
     $post_types = acur_get_all_post_types();
     $sitemap_url = acur_get_sitemap_url();
-    global $current_post_type;
+    global $acur_current_post_type;
 
     if (empty($post_types)) {
-        echo '<p>' . __('No valid post types found.', 'advanced-content-update-refresher') . '</p>';
+        echo '<p>' . esc_html__('No valid post types found.', 'advanced-content-update-refresher') . '</p>';
         return;
     }
 
     ?>
 
     <div class="wrap">
-        <h1><?php _e('Advanced Content Update Refresher', 'advanced-content-update-refresher'); ?></h1>
+        <h1><?php esc_html_e('Advanced Content Update Refresher', 'advanced-content-update-refresher'); ?></h1>
 
         <h2 class="nav-tab-wrapper">
             <?php foreach ($post_types as $post_type): ?>
                 <a href="?page=acur-settings&tab=<?php echo esc_attr($post_type); ?>"
-                   class="nav-tab <?php echo ($current_post_type == $post_type) ? 'nav-tab-active' : ''; ?>">
-                    <?php echo ucfirst($post_type); ?>
+                   class="nav-tab <?php echo ($acur_current_post_type == $post_type) ? 'nav-tab-active' : ''; ?>">
+                    <?php echo esc_html(ucfirst($post_type)); ?>
                 </a>
             <?php endforeach; ?>
         </h2>
 
         <?php foreach ($post_types as $post_type): 
-            if ($current_post_type !== $post_type) continue; 
+            if ($acur_current_post_type !== $post_type) continue; 
             $settings = get_option("acur_settings_{$post_type}", []);
+            if(!is_array($settings)) {$settings=array();}
         ?>
             <div class="tab-content">
-                <h3><?php echo ucfirst($post_type); ?> <?php _e('Settings', 'advanced-content-update-refresher'); ?></h3>
+                <h3><?php echo esc_html(ucfirst($post_type)); ?> <?php esc_html_e('Settings', 'advanced-content-update-refresher'); ?></h3>
 
                 <form method="post" action="options.php">
                     <?php settings_fields("acur_settings_group_{$post_type}"); ?>
                     <?php do_settings_sections("acur-settings-{$post_type}"); ?>
-                    <input type="hidden" name="post_type" value="<?php echo $current_post_type;?>" />
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[mass_update_field]" value="<?php echo $settings["mass_update_field"];?>" />
+                    <input type="hidden" name="post_type" value="<?php echo esc_attr($acur_current_post_type);?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[mass_update_field]" value="<?php echo esc_attr($settings["mass_update_field"]);?>" />
                     <input type="hidden" name="mm_settings_saved" value="1" />
-                    <p><strong><?php _e('Update Interval', 'advanced-content-update-refresher'); ?></strong></p>
+                    <p><strong><?php esc_html_e('Update Interval', 'advanced-content-update-refresher'); ?></strong></p>
                     <p><select name="acur_settings_<?php echo esc_attr($post_type); ?>[frequency]" id="acur_frequency_<?php echo esc_attr($post_type); ?>" onchange="toggleCustomDays('<?php echo esc_attr($post_type); ?>')">
-                        <option value="hourly" <?php selected($settings["frequency"] ?? "", "hourly"); ?>><?php _e('Hourly', 'advanced-content-update-refresher'); ?></option>
-                        <option value="daily" <?php selected($settings["frequency"] ?? "", "daily"); ?>><?php _e('Daily', 'advanced-content-update-refresher'); ?></option>
-                        <option value="weekly" <?php selected($settings["frequency"] ?? "", "weekly"); ?>><?php _e('Weekly', 'advanced-content-update-refresher'); ?></option>
-                        <option value="biweekly" <?php selected($settings["frequency"] ?? "", "biweekly"); ?>><?php _e('Every 2 Weeks', 'advanced-content-update-refresher'); ?></option>
-                        <option value="monthly" <?php selected($settings["frequency"] ?? "", "monthly"); ?>><?php _e('Monthly', 'advanced-content-update-refresher'); ?></option>
-                        <option value="custom" <?php selected($settings["frequency"] ?? "", "custom"); ?>><?php _e('Custom (Days)', 'advanced-content-update-refresher'); ?></option>
+                        <option value="hourly" <?php selected($settings["frequency"] ?? "", "hourly"); ?>><?php esc_html_e('Hourly', 'advanced-content-update-refresher'); ?></option>
+                        <option value="daily" <?php selected($settings["frequency"] ?? "", "daily"); ?>><?php esc_html_e('Daily', 'advanced-content-update-refresher'); ?></option>
+                        <option value="weekly" <?php selected($settings["frequency"] ?? "", "weekly"); ?>><?php esc_html_e('Weekly', 'advanced-content-update-refresher'); ?></option>
+                        <option value="biweekly" <?php selected($settings["frequency"] ?? "", "biweekly"); ?>><?php esc_html_e('Every 2 Weeks', 'advanced-content-update-refresher'); ?></option>
+                        <option value="monthly" <?php selected($settings["frequency"] ?? "", "monthly"); ?>><?php esc_html_e('Monthly', 'advanced-content-update-refresher'); ?></option>
+                        <option value="custom" <?php selected($settings["frequency"] ?? "", "custom"); ?>><?php esc_html_e('Custom (Days)', 'advanced-content-update-refresher'); ?></option>
                     </select></p>
                     
                     <p>
                         <input type="number" name="acur_settings_<?php echo esc_attr($post_type); ?>[custom_days]" id="acur_custom_days_<?php echo esc_attr($post_type); ?>" value="<?php echo esc_attr($settings['custom_days'] ?? 7); ?>" min="1" style="display: <?php echo ($settings['frequency'] ?? '') === 'custom' ? 'inline-block' : 'none'; ?>;"></p>
                     <p>
                         <input type="checkbox" name="acur_settings_<?php echo esc_attr($post_type); ?>[random_variance]" value="1" <?php checked($settings['random_variance'] ?? '', '1'); ?>>
-                        <?php _e('Enable 10% Random Variance', 'advanced-content-update-refresher'); ?>
+                        <?php esc_html_e('Enable 10% Random Variance', 'advanced-content-update-refresher'); ?>
                     </p>
 
-                    <p><strong><?php _e('Posts per Update', 'advanced-content-update-refresher'); ?></strong></p>
+                    <p><strong><?php esc_html_e('Posts per Update', 'advanced-content-update-refresher'); ?></strong></p>
                     <p><input type="number" name="acur_settings_<?php echo esc_attr($post_type); ?>[posts_per_run]" value="<?php echo esc_attr($settings['posts_per_run'] ?? 5); ?>" min="1"></p>
 
-                    <p><strong><?php _e('Field to Update', 'advanced-content-update-refresher'); ?></strong></p>
+                    <p><strong><?php esc_html_e('Field to Update', 'advanced-content-update-refresher'); ?></strong></p>
                     <p><select name="acur_settings_<?php echo esc_attr($post_type); ?>[update_field]">
-                        <option value="modified" <?php selected($settings["update_field"] ?? "", "modified"); ?>><?php _e('Modified', 'advanced-content-update-refresher'); ?></option>
-                        <option value="published" <?php selected($settings["update_field"] ?? "", "published"); ?>><?php _e('Published', 'advanced-content-update-refresher'); ?></option>
+                        <option value="modified" <?php selected($settings["update_field"] ?? "", "modified"); ?>><?php esc_html_e('Modified', 'advanced-content-update-refresher'); ?></option>
+                        <option value="published" <?php selected($settings["update_field"] ?? "", "published"); ?>><?php esc_html_e('Published', 'advanced-content-update-refresher'); ?></option>
                     </select></p>
 
                     <p>
@@ -226,32 +268,32 @@ function acur_settings_page() {
                                 id="acur-save-settings" 
                                 type="submit" 
                                 class="button button-primary" 
-                                data-post-type="<?php echo esc_attr($current_post_type); ?>" 
-                                value="<?php _e('Save Changes', 'advanced-content-update-refresher'); ?>">
+                                data-post-type="<?php echo esc_attr($acur_current_post_type); ?>" 
+                                value="<?php esc_html_e('Save Changes', 'advanced-content-update-refresher'); ?>">
                         </p>
                 </form>
                 
                 <hr />
                 
-                <h3><?php _e('Bulk Update', 'advanced-content-update-refresher'); ?></h3>
+                <h3><?php esc_html_e('Bulk Update', 'advanced-content-update-refresher'); ?></h3>
                 
                  <form method="post" action="options.php">
                     <?php settings_fields("acur_settings_group_{$post_type}"); ?>
                     <?php do_settings_sections("acur-settings-{$post_type}"); ?>
-                    <input type="hidden" name="post_type" value="<?php echo $current_post_type;?>" />
+                    <input type="hidden" name="post_type" value="<?php echo esc_html($acur_current_post_type);?>" />
                     
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[frequency]" value="<?php echo $settings["frequency"];?>" />
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[custom_days]" value="<?php echo $settings["custom_days"];?>" />
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[random_variance]" value="<?php echo (int)$settings['random_variance'];?>" />
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[posts_per_run]" value="<?php echo $settings["posts_per_run"];?>" />
-                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[update_field]" value="<?php echo $settings["update_field"];?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[frequency]" value="<?php echo esc_attr($settings["frequency"]);?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[custom_days]" value="<?php echo esc_attr($settings["custom_days"]);?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[random_variance]" value="<?php echo (int)esc_attr($settings['random_variance']);?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[posts_per_run]" value="<?php echo esc_attr($settings["posts_per_run"]);?>" />
+                    <input type="hidden" name="acur_settings_<?php echo esc_attr($post_type); ?>[update_field]" value="<?php echo esc_attr($settings["update_field"]);?>" />
                     
                     <input type="hidden" name="mm_settings_saved" value="1" />
                     
-                    <p><strong><?php _e('Field to Update', 'advanced-content-update-refresher'); ?></strong></p>
+                    <p><strong><?php esc_html_e('Field to Update', 'advanced-content-update-refresher'); ?></strong></p>
                     <p><select name="acur_settings_<?php echo esc_attr($post_type); ?>[mass_update_field]">
-                        <option value="modified" <?php selected($settings["mass_update_field"] ?? "", "modified"); ?>><?php _e('Modified', 'advanced-content-update-refresher'); ?></option>
-                        <option value="published" <?php selected($settings["mass_update_field"] ?? "", "published"); ?>><?php _e('Published', 'advanced-content-update-refresher'); ?></option>
+                        <option value="modified" <?php selected($settings["mass_update_field"] ?? "", "modified"); ?>><?php esc_html_e('Modified', 'advanced-content-update-refresher'); ?></option>
+                        <option value="published" <?php selected($settings["mass_update_field"] ?? "", "published"); ?>><?php esc_html_e('Published', 'advanced-content-update-refresher'); ?></option>
                     </select></p>
 
                     <p>
@@ -259,35 +301,35 @@ function acur_settings_page() {
                                 id="acur-save-settings" 
                                 type="submit" 
                                 class="button button-primary" 
-                                data-post-type="<?php echo esc_attr($current_post_type); ?>" 
-                                value="<?php _e('Save Changes', 'advanced-content-update-refresher'); ?>">
+                                data-post-type="<?php echo esc_attr($acur_current_post_type); ?>" 
+                                value="<?php esc_html_e('Save Changes', 'advanced-content-update-refresher'); ?>">
                         </p>
                </form> 
                 
                 <?php if(!is_array($settings) || !isset($settings["mass_update_field"]))
                 {
                     echo "<p>";
-                    _e('To perform the bulk update, please first save the settings for the post type.', 'advanced-content-update-refresher');
+                    esc_html_e('To perform the bulk update, please first save the settings for the post type.', 'advanced-content-update-refresher');
                     echo "</p>";
                 }
                 else
                 {
                 ?>
                     <p><button class="button button-secondary acur-mass-update" data-post-type="<?php echo esc_attr($post_type); ?>">
-                        <?php _e('Update All', 'advanced-content-update-refresher'); ?>
+                        <?php esc_html_e('Update All', 'advanced-content-update-refresher'); ?>
                     </button></p>
                 <?php
                 }
                 ?>
-                <div class="acur_progress_container <?php echo esc_attr($current_post_type); ?>"><div class="acur_progress_bar"></div><div class="acur_progress_text"></div></div>
+                <div class="acur_progress_container <?php echo esc_attr($acur_current_post_type); ?>"><div class="acur_progress_bar"></div><div class="acur_progress_text"></div></div>
                 
                 <hr />
             </div>
         <?php endforeach; ?>
 
         <p>
-            <strong><?php _e('Link to Sitemap', 'advanced-content-update-refresher'); ?>:</strong>
-            <a href="<?php echo esc_url($sitemap_url); ?>" target="_blank"><?php _e('View Sitemap', 'advanced-content-update-refresher'); ?></a>
+            <strong><?php esc_html_e('Link to Sitemap', 'advanced-content-update-refresher'); ?>:</strong>
+            <a href="<?php echo esc_url($sitemap_url); ?>" target="_blank"><?php esc_html_e('View Sitemap', 'advanced-content-update-refresher'); ?></a>
         </p>
     </div>
 
@@ -324,16 +366,16 @@ function acur_settings_page() {
                     var percentage = (updatedPosts / totalPosts) * 100;
                     progressBar.css('width', percentage + '%');
                     percentage=Math.round(percentage);
-                    progressText.text(percentage + '% <?php _e('updated', 'advanced-content-update-refresher'); ?>');
+                    progressText.text(percentage + '% <?php esc_html_e('updated', 'advanced-content-update-refresher'); ?>');
                 }
 
                 function fetchTotalPosts() 
                 {
-                    $.post(ajaxurl, { action: 'acur_get_total_posts', post_type: postType, security: '<?php echo wp_create_nonce("acur_get_total_posts"); ?>' }, function(response) {
+                    $.post(ajaxurl, { action: 'acur_get_total_posts', post_type: postType, security: '<?php echo esc_attr(wp_create_nonce("acur_get_total_posts")); ?>' }, function(response) {
                         totalPosts = response.data.total;
                         var percentage=updatedPosts*100/totalPosts;
                         percentage=Math.round(percentage);
-                        progressText.text(percentage + '% <?php _e('updated', 'advanced-content-update-refresher'); ?>');
+                        progressText.text(percentage + '% <?php esc_html_e('updated', 'advanced-content-update-refresher'); ?>');
                         processBatch();
                     });
                 }
@@ -348,7 +390,7 @@ function acur_settings_page() {
                             offset: offset, 
                             limit: batchSize,
                             post_type: postType,
-                            security: '<?php echo wp_create_nonce("acur_mass_update"); ?>'
+                            security: '<?php echo esc_attr(wp_create_nonce("acur_mass_update")); ?>'
                         },
                         success: function(response) 
                         {
@@ -364,7 +406,7 @@ function acur_settings_page() {
                             else 
                             {
                                 updateBtn.prop('disabled', false);
-                                alert('<?php _e('Bulk update successfully completed', 'advanced-content-update-refresher'); ?>');
+                                alert('<?php esc_html_e('Bulk update successfully completed', 'advanced-content-update-refresher'); ?>');
                             }
                         },
                         

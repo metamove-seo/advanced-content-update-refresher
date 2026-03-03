@@ -8,10 +8,10 @@ if (!defined('ABSPATH')) {
  */
 function acur_instant_update() {
 
-    global $current_post_type;
+    global $acur_current_post_type;
 
-    if (isset($current_post_type)) {
-        acur_update_post_type($current_post_type); // Führt die Aktualisierung sofort aus
+    if (isset($acur_current_post_type)) {
+        acur_update_post_type($acur_current_post_type); // Führt die Aktualisierung sofort aus
     }
     
 }
@@ -65,12 +65,12 @@ function acur_add_schedules( $schedules )
     foreach ($post_types as $mm_post_type) 
     {
         $settings = get_option("acur_settings_{$mm_post_type}", []);
-
+        if(!is_array($settings)) {$settings=array();}
         if(count($settings) > 0 && $settings["frequency"]=="custom")
         {
             $tage=(int)$settings["custom_days"];
             $intervall=60*60*24*$tage;
-            $schedules["acur_custom_{$mm_post_type}"] = array('interval' => $intervall, 'display' => esc_html__('Custom', 'advanced-content-update-refresher'). ' ('.strtoupper($mm_post_type).') '.esc_html__('Every', 'advanced-content-update-refresher').$tage.esc_html__('days', 'advanced-content-update-refresher'));
+            $schedules["acur_custom_{$mm_post_type}"] = array('interval' => $intervall, 'display' => esc_htmlesc_html__('Custom', 'advanced-content-update-refresher'). ' ('.strtoupper($mm_post_type).') '.esc_htmlesc_html__('Every', 'advanced-content-update-refresher').$tage.esc_htmlesc_html__('days', 'advanced-content-update-refresher'));
         }
     }
     
@@ -91,6 +91,8 @@ function acur_schedule_crons()
         {
             $settings = get_option("acur_settings_{$mm_post_type}", []);
 
+            if(!is_array($settings)) {$settings=array();}
+            
             if(count($settings) > 0)
             {
                 if($settings["frequency"]=="custom")
@@ -120,7 +122,7 @@ function acur_get_update_time($variance_status)
         $abweichung=round($hour*(100-$prozent)/100);
         $abweichung=$hour-$abweichung;
         $newTime=$newTime-$abweichung;
-        $update_time = date("Y-m-d H:i:s",$newTime);
+        $update_time = gmdate("Y-m-d H:i:s",$newTime);
     }
     
     return $update_time;
@@ -134,7 +136,7 @@ function acur_do_update($post_type, $offset=0, $limit=0, $ajax=0)
     {
         if ($ajax==1)
         {
-            wp_send_json_error(__('ERROR: No settings for the post type', 'advanced-content-update-refresher').$post_type.__('gefunden!', 'advanced-content-update-refresher'));
+            wp_send_json_error(esc_html__('ERROR: No settings for the post type', 'advanced-content-update-refresher').$post_type.esc_html__('gefunden!', 'advanced-content-update-refresher'));
             return 'error';
         }
         else
@@ -201,15 +203,16 @@ function acur_do_update($post_type, $offset=0, $limit=0, $ajax=0)
             $update_time=acur_get_update_time($update_settings[$post_type]['random_variance']);
             
             $updateData=array('ID' => $post->ID,);
+            $tablename = $wpdb->prefix . 'posts';
             
             switch($update_settings[$post_type]['update_field'])
             {
                 case "modified": 
-                    $wpdb->query("UPDATE ".$wpdb->prefix."posts SET post_modified='".$update_time."', post_modified_gmt='".get_gmt_from_date($update_time)."' WHERE ID=".(int)$post->ID);
+                    $wpdb->update($tablename, array("post_modified" => $update_time, "post_modified_gmt" => get_gmt_from_date($update_time)), array("ID" => (int)$post->ID));
                 break;
                 
                 case "published":
-                    $wpdb->query("UPDATE ".$wpdb->prefix."posts SET post_date='".$update_time."' WHERE ID=".(int)$post->ID);
+                    $wpdb->update($tablename, array("post_date" => $update_time, "post_date_gmt" => get_gmt_from_date($update_time), "post_modified" => $update_time, "post_modified_gmt" => get_gmt_from_date($update_time)), array("ID" => (int)$post->ID));
                 break;
             }
             
@@ -226,7 +229,7 @@ function acur_do_update($post_type, $offset=0, $limit=0, $ajax=0)
         
         if ($ajax==1)
         {
-            $rv=array("updated"=>$updated_count, "message" => __('Bulk update successfully completed', 'advanced-content-update-refresher'));
+            $rv=array("updated"=>$updated_count, "message" => esc_html__('Bulk update successfully completed', 'advanced-content-update-refresher'));
             wp_send_json_success($rv);
             return;
         }
@@ -239,7 +242,7 @@ function acur_do_update($post_type, $offset=0, $limit=0, $ajax=0)
     {
         if ($ajax==1)
         {
-            wp_send_json_error(__('No Posts found!', 'advanced-content-update-refresher'));
+            wp_send_json_error(esc_html__('No Posts found!', 'advanced-content-update-refresher'));
             return;
         }
         else
